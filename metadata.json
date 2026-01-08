@@ -1,0 +1,8 @@
+{
+  "name": "Cowele",
+  "description": "Encuentra baños públicos en San Luis Potosí con Cowele. Sistema Pro con alertas de proximidad y reportes en tiempo real.",
+  "requestFramePermissions": [
+    "geolocation",
+    "camera"
+  ]
+}

@@ -1,0 +1,18 @@
+
+{
+  "name": "Cowele - Baños Públicos",
+  "short_name": "Cowele",
+  "description": "Encuentra baños públicos gratuitos y de paga en Cowele.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFD1C",
+  "theme_color": "#F14513",
+  "icons": [
+    {
+      "src": "https://tritex.com.mx/coweleicono.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
