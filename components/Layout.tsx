@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Map as MapIcon, PlusCircle, Award, ShieldCheck, Settings, Users, MessageSquare, User, LogOut, UserCog, Repeat, LayoutDashboard } from 'lucide-react';
+import { Map as MapIcon, PlusCircle, Award, ShieldCheck, Settings, Users, MessageSquare, User, LogOut, UserCog, Repeat, LayoutDashboard, Share2 } from 'lucide-react';
 import { APP_BRANDING, ADMIN_CREDENTIALS } from '../constants';
 
 interface LayoutProps {
@@ -41,6 +41,24 @@ const Layout: React.FC<LayoutProps> = ({
     navItems.push({ id: 'users', label: 'Usuarios', icon: Users });
   }
 
+  // Se añade la opción de compartir al final de la lista para todos
+  navItems.push({ id: 'share', label: 'Compartir', icon: Share2 });
+
+  const handleShare = () => {
+    const shareData = {
+      title: 'Cowele - Baños Públicos SLP',
+      text: '¡Encuentra baños públicos limpios en San Luis Potosí con Cowele!',
+      url: 'https://cowele.vercel.app/'
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(() => console.log('Uso cancelado'));
+    } else {
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(shareData.text + ' ' + shareData.url)}`;
+      window.open(waUrl, '_blank');
+    }
+  };
+
   return (
     <div className="flex h-screen w-full bg-gray-50 overflow-hidden font-sans">
       {/* SIDEBAR (Desktop) */}
@@ -74,7 +92,7 @@ const Layout: React.FC<LayoutProps> = ({
             {navItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => item.id === 'share' ? handleShare() : setActiveTab(item.id)}
                 className={`w-full flex items-center gap-4 px-6 py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-all ${
                   activeTab === item.id ? 'bg-primary text-secondary' : 'hover:bg-white/10 text-white/80'
                 }`}
@@ -144,7 +162,7 @@ const Layout: React.FC<LayoutProps> = ({
           {navItems.map((item) => (
             <button 
               key={item.id}
-              onClick={() => setActiveTab(item.id)} 
+              onClick={() => item.id === 'share' ? handleShare() : setActiveTab(item.id)} 
               className={`flex flex-col items-center gap-1 min-w-[64px] transition-all ${activeTab === item.id ? 'text-secondary scale-110' : 'text-gray-400'}`}
             >
               <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'stroke-[3px]' : ''}`} />
