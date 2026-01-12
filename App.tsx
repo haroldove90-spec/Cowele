@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@supabase/supabase-js';
 import Layout from './components/Layout';
 import MapView from './components/MapView';
@@ -8,7 +8,8 @@ import BathroomDetailCard from './components/BathroomDetailCard';
 import { SLP_CENTER, SUPABASE_CONFIG, APP_BRANDING, ADMIN_CREDENTIALS } from './constants';
 import { Bathroom, UserLocation, BathroomStatus } from './types';
 import { calculateDistance } from './utils';
-import { Camera, Loader2, Search, CheckCircle, Smartphone, RefreshCcw, LogOut, MapPin, CheckCircle2, Map as MapIcon, UserPlus, Key, AlertTriangle, ImageIcon, Edit, Trash2, Settings, ExternalLink, Eye, EyeOff, Users, ShieldCheck, Ban, CheckCircle as StatusOk, X, Save, UserSearch, Crown, MousePointer2, MessageSquare, Star, User, Upload, Repeat, UserCog } from 'lucide-react';
+// Added Award to the list of icons imported from lucide-react to fix reference error on line 526
+import { Camera, Loader2, Search, CheckCircle, Smartphone, RefreshCcw, LogOut, MapPin, CheckCircle2, Map as MapIcon, UserPlus, Key, AlertTriangle, ImageIcon, Edit, Trash2, Settings, ExternalLink, Eye, EyeOff, Users, ShieldCheck, Ban, CheckCircle as StatusOk, X, Save, UserSearch, Crown, MousePointer2, MessageSquare, Star, User, Upload, Repeat, UserCog, LayoutDashboard, TrendingUp, Calendar, Users as UsersIcon, Plus, Award } from 'lucide-react';
 
 const supabase = createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.apiKey);
 const DEFAULT_PHOTO = 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800';
@@ -35,7 +36,7 @@ const App: React.FC = () => {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [editingBathroom, setEditingBathroom] = useState<Bathroom | null>(null);
   
-  // Nuevo estado para gestión de roles dinámicos (Simulación)
+  // Estado para gestión de roles dinámicos
   const [isViewForcedAsUser, setIsViewForcedAsUser] = useState(false);
 
   // Estados de perfil
@@ -66,6 +67,11 @@ const App: React.FC = () => {
           password: data.password || '',
           avatarUrl: data.avatar_url || DEFAULT_AVATAR
         });
+        
+        // Si es admin, por defecto ir al Dashboard
+        if (ADMIN_CREDENTIALS.some(c => c.user === data.username)) {
+          setActiveTab('dashboard');
+        }
       } catch (e) {
         localStorage.removeItem('cowele_session');
       }
@@ -73,8 +79,10 @@ const App: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (activeTab === 'users' && isLoggedIn) fetchProfiles();
-    if (activeTab === 'reviews_feed' && isLoggedIn) fetchAllReviews();
+    if (isLoggedIn) {
+      if (activeTab === 'users' || activeTab === 'dashboard') fetchProfiles();
+      if (activeTab === 'reviews_feed' || activeTab === 'dashboard') fetchAllReviews();
+    }
   }, [activeTab, isLoggedIn]);
 
   const requestLocation = () => {
@@ -163,6 +171,10 @@ const App: React.FC = () => {
       avatar_url: user.avatar_url || DEFAULT_AVATAR
     } as any);
     localStorage.setItem('cowele_session', JSON.stringify(user));
+    
+    if (ADMIN_CREDENTIALS.some(c => c.user === user.username)) {
+      setActiveTab('dashboard');
+    }
   };
 
   const logout = () => {
@@ -274,7 +286,7 @@ const App: React.FC = () => {
       }
 
       await fetchBathrooms();
-      if (activeTab === 'reviews_feed') await fetchAllReviews();
+      if (activeTab === 'reviews_feed' || activeTab === 'dashboard') await fetchAllReviews();
       
       alert("⭐ ¡Gracias por tu reseña! +10 XP");
     } catch (e: any) { 
@@ -392,6 +404,38 @@ const App: React.FC = () => {
     alert(isViewForcedAsUser ? "Modo Arquitecto Restaurado" : "Simulando vista de Usuario Pro");
   };
 
+  // CÁLCULO DE ESTADÍSTICAS PARA DASHBOARD
+  const analytics = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Baños por día (últimos 7 días)
+    const bathroomsByDay = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const count = bathrooms.filter(b => b.lastReported?.startsWith(dateStr)).length;
+      return { date: dateStr, count };
+    }).reverse();
+
+    // Usuarios por día (últimos 7 días)
+    const usersByDay = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const count = profiles.filter(p => p.created_at?.startsWith(dateStr)).length;
+      return { date: dateStr, count };
+    }).reverse();
+
+    return {
+      totalBathrooms: bathrooms.length,
+      todayBathrooms: bathrooms.filter(b => b.lastReported?.startsWith(today)).length,
+      totalUsers: profiles.length,
+      todayUsers: profiles.filter(p => p.created_at?.startsWith(today)).length,
+      bathroomsByDay,
+      usersByDay
+    };
+  }, [bathrooms, profiles]);
+
   const { lat: currentLat, lng: currentLng } = parseCoords(regForm.coords);
   const isRealAdmin = currentUser && ADMIN_CREDENTIALS.some(c => c.user === currentUser.username);
 
@@ -426,6 +470,183 @@ const App: React.FC = () => {
       onToggleRole={toggleRole}
       isViewForcedAsUser={isViewForcedAsUser}
     >
+      {activeTab === 'dashboard' && (
+        <div className="h-full overflow-y-auto bg-gray-50 p-8 pb-40">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <header className="flex flex-col gap-2">
+              <h2 className="text-4xl font-black text-gray-900 uppercase italic tracking-tighter">Análisis Cowele SLP</h2>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Monitor Maestro de Infraestructura</p>
+              </div>
+            </header>
+
+            {/* KPI CARDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                   <MapPin className="w-24 h-24 text-secondary" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase italic mb-1">Total Baños</h4>
+                  <div className="text-3xl font-black text-secondary">{analytics.totalBathrooms}</div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-[10px] font-bold text-green-500">
+                  <Plus className="w-3 h-3" /> {analytics.todayBathrooms} registrados hoy
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                   <UsersIcon className="w-24 h-24 text-secondary" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase italic mb-1">Usuarios Pro</h4>
+                  <div className="text-3xl font-black text-secondary">{analytics.totalUsers}</div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-[10px] font-bold text-green-500">
+                  <TrendingUp className="w-3 h-3" /> {analytics.todayUsers} nuevos hoy
+                </div>
+              </div>
+
+              <div className="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100 flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 opacity-5 group-hover:scale-110 transition-transform">
+                   <MessageSquare className="w-24 h-24 text-secondary" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase italic mb-1">Reseñas Totales</h4>
+                  <div className="text-3xl font-black text-secondary">{allReviews.length}</div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-[10px] font-bold text-secondary">
+                  <Star className="w-3 h-3 fill-current" /> Feedback comunidad
+                </div>
+              </div>
+
+              <div className="bg-primary p-6 rounded-[32px] shadow-sm flex flex-col justify-between relative overflow-hidden group">
+                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:scale-110 transition-transform">
+                   <Award className="w-24 h-24 text-secondary" />
+                </div>
+                <div>
+                  <h4 className="text-[10px] font-black text-secondary/60 uppercase italic mb-1">XP Distribuido</h4>
+                  <div className="text-3xl font-black text-secondary">{(profiles.reduce((acc, p) => acc + (p.points || 0), 0) / 1000).toFixed(1)}K</div>
+                </div>
+                <div className="mt-4 flex items-center gap-1 text-[10px] font-black text-secondary uppercase italic">
+                  Gabinete de Estrellas
+                </div>
+              </div>
+            </div>
+
+            {/* CHARTS */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Bathrooms Growth Chart */}
+              <div className="bg-white p-8 rounded-[40px] shadow-xl border border-gray-100 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-black text-gray-800 uppercase italic">Crecimiento de Infraestructura</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Historial de registros (últimos 7 días)</p>
+                  </div>
+                  <Calendar className="text-secondary w-6 h-6" />
+                </div>
+                
+                <div className="h-64 flex items-end gap-2 px-2 border-b-2 border-gray-100 pb-2">
+                  {analytics.bathroomsByDay.map((day, i) => {
+                    const maxCount = Math.max(...analytics.bathroomsByDay.map(d => d.count), 1);
+                    const heightPercent = (day.count / maxCount) * 100;
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                        <div 
+                          className="w-full bg-secondary/10 rounded-t-xl group-hover:bg-secondary/30 transition-all relative overflow-hidden" 
+                          style={{ height: `${heightPercent}%`, minHeight: '8px' }}
+                        >
+                          <div className="absolute inset-x-0 top-0 h-1 bg-secondary shadow-[0_0_10px_#F14513]"></div>
+                        </div>
+                        <span className="text-[8px] font-black text-gray-400 rotate-45 mt-2">{day.date.split('-').slice(1).join('/')}</span>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-secondary text-white text-[10px] font-black px-2 py-1 rounded-lg pointer-events-none">
+                          {day.count} Baños
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Users Growth Chart */}
+              <div className="bg-white p-8 rounded-[40px] shadow-xl border border-gray-100 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-black text-gray-800 uppercase italic">Adopción de Usuarios</h3>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase">Nuevos arquitectos Pro (últimos 7 días)</p>
+                  </div>
+                  <TrendingUp className="text-secondary w-6 h-6" />
+                </div>
+                
+                <div className="h-64 flex items-end gap-2 px-2 border-b-2 border-gray-100 pb-2">
+                  {analytics.usersByDay.map((day, i) => {
+                    const maxCount = Math.max(...analytics.usersByDay.map(d => d.count), 1);
+                    const heightPercent = (day.count / maxCount) * 100;
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-2 group relative">
+                        <div 
+                          className="w-full bg-primary rounded-t-xl group-hover:brightness-90 transition-all relative" 
+                          style={{ height: `${heightPercent}%`, minHeight: '8px' }}
+                        >
+                          <div className="absolute inset-x-0 top-0 h-1 bg-white/50"></div>
+                        </div>
+                        <span className="text-[8px] font-black text-gray-400 rotate-45 mt-2">{day.date.split('-').slice(1).join('/')}</span>
+                        
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black text-white text-[10px] font-black px-2 py-1 rounded-lg pointer-events-none">
+                          {day.count} Pro
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* RECENT ACTIVITY TABLE */}
+            <div className="bg-white rounded-[40px] shadow-xl border border-gray-100 overflow-hidden">
+               <div className="p-8 border-b border-gray-100 flex justify-between items-center">
+                  <h3 className="text-xl font-black text-gray-800 uppercase italic">Últimos Registros</h3>
+                  <button onClick={fetchBathrooms} className="text-[10px] font-black text-secondary uppercase border-2 border-secondary/20 px-4 py-2 rounded-xl active:scale-95 transition-all">Sincronizar Datos</button>
+               </div>
+               <div className="overflow-x-auto">
+                 <table className="w-full text-left">
+                    <thead className="bg-gray-50 text-[10px] font-black text-gray-400 uppercase italic">
+                       <tr>
+                          <th className="px-8 py-4">Baño</th>
+                          <th className="px-8 py-4">Arquitecto</th>
+                          <th className="px-8 py-4">Status</th>
+                          <th className="px-8 py-4 text-right">Fecha</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 text-xs font-bold text-gray-600">
+                       {bathrooms.slice(0, 5).map(b => (
+                         <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
+                            <td className="px-8 py-6">
+                               <div className="flex items-center gap-3">
+                                  <img src={b.photo} className="w-8 h-8 rounded-lg object-cover" />
+                                  <span className="font-black text-black uppercase">{b.name}</span>
+                               </div>
+                            </td>
+                            <td className="px-8 py-6">@{b.createdBy || 'Sistema'}</td>
+                            <td className="px-8 py-6">
+                               <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">Verificado</span>
+                            </td>
+                            <td className="px-8 py-6 text-right font-black text-gray-400 italic">{new Date(b.lastReported).toLocaleDateString()}</td>
+                         </tr>
+                       ))}
+                    </tbody>
+                 </table>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeTab === 'explore' && (
         <>
           <div className="absolute top-4 left-4 right-4 z-20 max-w-lg mx-auto flex gap-2">

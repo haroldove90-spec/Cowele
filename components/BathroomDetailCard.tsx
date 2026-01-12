@@ -60,9 +60,19 @@ const BathroomDetailCard: React.FC<BathroomDetailCardProps> = ({ bathroom, dista
       </div>
 
       {showNav && (
-        <div className="flex gap-2 mb-4 animate-in fade-in shrink-0">
-          <button onClick={() => navigateTo('google')} className="flex-1 bg-blue-50 text-blue-600 p-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase"><MapIcon className="w-4 h-4" /> Google Maps</button>
-          <button onClick={() => navigateTo('waze')} className="flex-1 bg-cyan-50 text-cyan-600 p-3 rounded-xl flex items-center justify-center gap-2 text-[10px] font-black uppercase"><Compass className="w-4 h-4" /> Waze</button>
+        <div className="flex gap-3 mb-4 animate-in fade-in zoom-in-95 duration-200 shrink-0">
+          <button 
+            onClick={() => navigateTo('google')} 
+            className="flex-1 bg-[#4285F4] text-white p-4 rounded-[24px] flex items-center justify-center gap-2 text-[10px] font-black uppercase shadow-[0_10px_20px_rgba(66,133,244,0.4)] hover:brightness-110 active:scale-95 transition-all border-2 border-white"
+          >
+            <MapIcon className="w-5 h-5" /> Google Maps
+          </button>
+          <button 
+            onClick={() => navigateTo('waze')} 
+            className="flex-1 bg-[#33CCFF] text-white p-4 rounded-[24px] flex items-center justify-center gap-2 text-[10px] font-black uppercase shadow-[0_10px_20px_rgba(51,204,255,0.4)] hover:brightness-110 active:scale-95 transition-all border-2 border-white"
+          >
+            <Compass className="w-5 h-5" /> Waze
+          </button>
         </div>
       )}
 

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Map as MapIcon, PlusCircle, Award, ShieldCheck, Settings, Users, MessageSquare, User, LogOut, UserCog, Repeat } from 'lucide-react';
+import { Map as MapIcon, PlusCircle, Award, ShieldCheck, Settings, Users, MessageSquare, User, LogOut, UserCog, Repeat, LayoutDashboard } from 'lucide-react';
 import { APP_BRANDING, ADMIN_CREDENTIALS } from '../constants';
 
 interface LayoutProps {
@@ -35,6 +35,8 @@ const Layout: React.FC<LayoutProps> = ({
   ];
 
   if (isAdminView) {
+    // El Dashboard se coloca como la primera opción para el Arquitecto
+    navItems.unshift({ id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard });
     navItems.push({ id: 'admin', label: 'Baños', icon: Settings });
     navItems.push({ id: 'users', label: 'Usuarios', icon: Users });
   }
